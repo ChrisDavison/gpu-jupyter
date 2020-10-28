@@ -9,7 +9,6 @@ export HEAD_COMMIT="04f7f60d34a674a2964d96a6cb97c57a7870a828"
 
 while [[ "$#" -gt 0 ]]; do case $1 in
   -c|--commit) HEAD_COMMIT="$2"; shift;;
-  --no-datascience-notebook) no_datascience_notebook=1;;
   --no-useful-packages) no_useful_packages=1;;
   -s|--slim) no_datascience_notebook=1 && no_useful_packages=1;;
   *) echo "Unknown parameter passed: $1" &&
@@ -78,18 +77,6 @@ echo "
 " >> $DOCKERFILE
 cat $STACKS_DIR/scipy-notebook/Dockerfile | grep -v BASE_CONTAINER >> $DOCKERFILE
 
-# install Julia and R if not excluded or spare mode is used
-if [[ "$no_datascience_notebook" != 1 ]]; then
-  echo "
-  ############################################################################
-  ################ Dependency: jupyter/datascience-notebook ##################
-  ############################################################################
-  " >> $DOCKERFILE
-  cat $STACKS_DIR/datascience-notebook/Dockerfile | grep -v BASE_CONTAINER >> $DOCKERFILE
-else
-  echo "Set 'no-datascience-notebook', not installing the datascience-notebook with Julia and R."
-fi
-
 # Note that the following step also installs the cudatoolkit, which is
 # essential to access the GPU.
 echo "
@@ -99,20 +86,14 @@ echo "
 " >> $DOCKERFILE
 cat src/Dockerfile.gpulibs >> $DOCKERFILE
 
-# install useful packages if not excluded or spare mode is used
-if [[ "$no_useful_packages" != 1 ]]; then
-  echo "
-  ############################################################################
-  ############################ Useful packages ###############################
-  ############################################################################
-  " >> $DOCKERFILE
-  cat src/Dockerfile.usefulpackages >> $DOCKERFILE
-else
-  echo "Set 'no-useful-packages', not installing stuff within src/Dockerfile.usefulpackages."
-fi
+echo "
+############################################################################
+############################ Useful packages ###############################
+############################################################################
+" >> $DOCKERFILE
+cat src/Dockerfile.usefulpackages >> $DOCKERFILE
 
-# Copy the demo notebooks and change permissions
-cp -r extra/Getting_Started data
+mkdir data
 chmod -R 755 data/
 
 # Copying config
@@ -120,8 +101,6 @@ cp src/jupyter_notebook_config.json .build/
 echo >> $DOCKERFILE
 echo "# Copy jupyter_notebook_config.json" >> $DOCKERFILE
 echo "COPY jupyter_notebook_config.json /etc/jupyter/"  >> $DOCKERFILE
-
-#cp $(find $(dirname $DOCKERFILE) -type f | grep -v $STACKS_DIR | grep -v .gitkeep) .
 
 echo "GPU Dockerfile was generated successfully in file ${DOCKERFILE}."
 echo "Run 'bash start-local.sh -p [PORT]' to start the GPU-based Juyterlab instance."
