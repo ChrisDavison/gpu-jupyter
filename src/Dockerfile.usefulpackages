@@ -62,21 +62,25 @@ RUN add-apt-repository ppa:ubuntugis/ppa &&\
 	pip install numpy &&\
     pip install gdal==$(gdalinfo --version | cut -d' ' -f2 | cut -d',' -f1)
 
+USER $NB_UID
 # Install other python dependencies
-COPY requirements.txt .
-RUN pip install -r requirements.txt 
+# COPY requirements.txt .
+RUN pip install --no-cache-dir sentinelsat shapely earthpy descartes rasterio pyproj GDAL pandas geopandas numpy IPython matplotlib pyperclip docopt
 # Add 'gpt' directory to PATH
 ENV PATH="/usr/local/snap/bin:${PATH}"
 
-COPY src/ src/
+
+WORKDIR /home/$NB_USER/
+COPY senprep/ src/
 
 # Switch back to jovyan to avoid accidental container runs as root
 USER $NB_UID
 
 # command to run on container start
 # 'bash' entrypoint is for debugging
-# ENTRYPOINT ["bash"]
+ENTRYPOINT ["bash"]
+CMD []
 # ...otherwise, run 'senprep', with whatever command the user gives
-ENTRYPOINT [ "python", "-m", "src.senprep" ] 
-CMD ["list"]
+# ENTRYPOINT [ "python", "-m", "src.senprep" ] 
+# CMD ["list"]
 
